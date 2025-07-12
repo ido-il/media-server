@@ -1,0 +1,42 @@
+<!doctype html>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>MPV Remote</title>
+<style>
+  body{font-family:sans-serif;background:#111;color:#eee;margin:0;padding:1rem;max-width:600px}
+  #status{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;font-size:1.1rem}
+  #status span{padding:.2rem .5rem;border-radius:.4rem;background:#222}
+  #controls{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:1rem}
+  button{padding:.7rem;font-size:1.2rem;border:none;border-radius:.4rem;background:#444;color:#eee}
+  button:active{transform:scale(.96)}
+  ul{list-style:none;padding:0;margin:0}
+  li{margin:.2rem 0}
+  a{color:#8cf;text-decoration:none}
+  a:hover{text-decoration:underline}
+</style>
+<h1>🎬 MPV Remote</h1>
+<div id=status>
+  <span id=s-running>🔴 stopped</span>
+  <span id=s-file></span>
+  <span id=s-pause></span>
+  <span id=s-volume></span>
+</div>
+<div id=controls>
+  <button onclick="seek(-10)">⏪ 10s</button>
+  <button onclick="action('pause')">⏯️ Play/Pause</button>
+  <button onclick="seek(10)">⏩ 10s</button>
+  <button onclick="vol(-5)">🔉 -5</button>
+  <button onclick="action('stop')">⏹️ Stop</button>
+  <button onclick="vol(5)">🔊 +5</button>
+</div>
+<h2>Movies</h2>
+<ul id=playlist></ul>
+<script>
+async function api(endpoint, opts={}){return fetch('/api/'+endpoint, opts)}
+async function loadMovies(){const r=await api('movies');const list=await r.json();const ul=document.getElementById('playlist');ul.innerHTML='';list.forEach(f=>{const li=document.createElement('li');li.innerHTML=`<a href=# onclick=\"play('${f}')\">${f}</a>`;ul.appendChild(li);});}
+async function play(file){await api('play',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file})});}
+async function action(act){await api(act,{method:'POST'});} 
+async function seek(d){await api('seek?delta='+d,{method:'POST'});} 
+async function vol(d){await api('volume?delta='+d,{method:'POST'});} 
+async function poll(){try{const r=await api('status');const s=await r.json();document.getElementById('s-running').textContent=s.running?'🟢 playing':'🔴 stopped';document.getElementById('s-file').textContent=s.file||'';document.getElementById('s-pause').textContent=s.running?(s.paused?'⏸️ paused':'▶️ playing'):'';document.getElementById('s-volume').textContent=s.running?`🔊 ${s.volume}`:'';}catch(e){console.error(e);}finally{setTimeout(poll,1000);} }
+loadMovies();poll();
+</script>
